@@ -1,0 +1,9 @@
+build*/
+private_key.pem
+
+.vscode/
+.clang*
+.cache
+compile_commands.json
+.antigravity*
+.envrc
