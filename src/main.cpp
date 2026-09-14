@@ -1,5 +1,6 @@
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/kernel.h>
+
 #include <stdio.h>
 
 #define SLEEP_TIME_MS 1000
@@ -8,7 +9,7 @@
 
 static const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(LED0_NODE, gpios);
 
-int main(void) {
+int main() {
     int ret = 0;
     bool led_state = true;
 
@@ -21,7 +22,7 @@ int main(void) {
         return 0;
     }
 
-    while (1) {
+    while (true) {
         ret = gpio_pin_toggle_dt(&led);
         if (ret < 0) {
             return 0;
