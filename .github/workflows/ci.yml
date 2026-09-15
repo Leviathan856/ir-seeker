@@ -1,0 +1,99 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  build:
+    name: Build & Verify (Zephyr)
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/zephyrproject-rtos/ci:main
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure Git safe directory
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+      - name: Cache Zephyr workspace
+        id: cache-zephyr
+        uses: actions/cache@v4
+        with:
+          path: /zephyrproject
+          key: zephyr-workspace-${{ runner.os }}-v4.2.99
+
+      - name: Initialize Zephyr workspace
+        if: steps.cache-zephyr.outputs.cache-hit != 'true'
+        run: |
+          west init -m https://github.com/zephyrproject-rtos/zephyr --mr main /zephyrproject
+          cd /zephyrproject
+          west update --narrow -o=--depth=1 hal_stm32 segger cmsis cmsis_6
+
+      - name: Build firmware
+        run: |
+          export ZEPHYR_BASE=/zephyrproject/zephyr
+          west build -p always -b blackpill_f411ce
+
+      - name: Upload firmware artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: firmware-blackpill_f411ce
+          path: |
+            build/zephyr/zephyr.hex
+          if-no-files-found: warn
+
+  release:
+    name: Semantic Release
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Download built firmware
+        uses: actions/download-artifact@v4
+        with:
+          name: firmware-blackpill_f411ce
+          path: build/zephyr
+        continue-on-error: true
+
+      - name: Seed initial tag if unversioned
+        run: |
+          if [ -z "$(git tag -l)" ]; then
+            maj=$(grep -E '^VERSION_MAJOR' VERSION | awk '{print $3}')
+            min=$(grep -E '^VERSION_MINOR' VERSION | awk '{print $3}')
+            pat=$(grep -E '^PATCHLEVEL' VERSION | awk '{print $3}')
+            first_commit=$(git rev-list --max-parents=0 HEAD | head -n 1)
+            echo "No existing tags found. Seeding initial tag v${maj:-0}.${min:-1}.${pat:-0} at commit ${first_commit}..."
+            git tag "v${maj:-0}.${min:-1}.${pat:-0}" "$first_commit"
+          fi
+
+      - name: Semantic Release
+        uses: cycjimmy/semantic-release-action@v4
+        with:
+          extra_plugins: |
+            @semantic-release/changelog
+            @semantic-release/exec
+            @semantic-release/git
+            conventional-changelog-conventionalcommits
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN || secrets.GITHUB_TOKEN }}

@@ -7,3 +7,4 @@ private_key.pem
 compile_commands.json
 .antigravity*
 .envrc
+node_modules/

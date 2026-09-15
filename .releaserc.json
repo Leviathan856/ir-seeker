@@ -1,0 +1,78 @@
+{
+  "branches": [
+    "main"
+  ],
+  "tagFormat": "v${version}",
+  "plugins": [
+    [
+      "@semantic-release/commit-analyzer",
+      {
+        "preset": "conventionalcommits",
+        "releaseRules": [
+          { "breaking": true, "release": "major" },
+          { "revert": true, "release": "patch" },
+          { "type": "feat", "release": "minor" },
+          { "type": "fix", "release": "patch" },
+          { "type": "perf", "release": "patch" },
+          { "type": "docs", "release": "patch" },
+          { "type": "refactor", "release": "patch" },
+          { "type": "style", "release": "patch" },
+          { "type": "test", "release": "patch" },
+          { "type": "chore", "release": "patch" },
+          { "type": "chore", "scope": "release", "release": false }
+        ]
+      }
+    ],
+    [
+      "@semantic-release/release-notes-generator",
+      {
+        "preset": "conventionalcommits",
+        "presetConfig": {
+          "types": [
+            { "type": "feat", "section": "Features" },
+            { "type": "fix", "section": "Bug Fixes" },
+            { "type": "perf", "section": "Performance Improvements" },
+            { "type": "revert", "section": "Reverts" },
+            { "type": "docs", "section": "Documentation" },
+            { "type": "refactor", "section": "Code Refactoring" },
+            { "type": "style", "section": "Styles" },
+            { "type": "test", "section": "Tests" },
+            { "type": "chore", "section": "Miscellaneous Chores" }
+          ]
+        }
+      }
+    ],
+    [
+      "@semantic-release/changelog",
+      {
+        "changelogFile": "CHANGELOG.md"
+      }
+    ],
+    [
+      "@semantic-release/exec",
+      {
+        "prepareCmd": "bash -c 'ver=\"${nextRelease.version}\"; ver=\"${ver#v}\"; IFS=\".-\" read -r maj min pat extra <<< \"$ver\"; printf \"VERSION_MAJOR = %s\\nVERSION_MINOR = %s\\nPATCHLEVEL = %s\\nVERSION_TWEAK = 0\\nEXTRAVERSION = %s\\n\" \"${maj:-0}\" \"${min:-0}\" \"${pat:-0}\" \"${extra}\" > VERSION'"
+      }
+    ],
+    [
+      "@semantic-release/git",
+      {
+        "assets": [
+          "VERSION",
+          "CHANGELOG.md"
+        ],
+        "message": "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
+      }
+    ],
+    [
+      "@semantic-release/github",
+      {
+        "assets": [
+          { "path": "build/zephyr/zephyr.bin", "label": "Firmware Binary (zephyr.bin)" },
+          { "path": "build/zephyr/zephyr.hex", "label": "Firmware Intel Hex (zephyr.hex)" },
+          { "path": "build/zephyr/zephyr.elf", "label": "Firmware ELF (zephyr.elf)" }
+        ]
+      }
+    ]
+  ]
+}
