@@ -19,6 +19,9 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/zephyrproject-rtos/ci:main
+    env:
+      ZEPHYR_BASE: /zephyrproject/zephyr
+      ZEPHYR_TOOLCHAIN_VARIANT: zephyr
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -42,7 +45,14 @@ jobs:
 
       - name: Build firmware
         run: |
-          export ZEPHYR_BASE=/zephyrproject/zephyr
+          for dir in /opt/toolchains/zephyr-sdk* /opt/zephyr-sdk*; do
+            if [ -d "$dir" ]; then
+              export ZEPHYR_SDK_INSTALL_DIR="$dir"
+              export CMAKE_PREFIX_PATH="$dir:$CMAKE_PREFIX_PATH"
+              [ -f "$dir/setup.sh" ] && "$dir/setup.sh" -c || true
+              break
+            fi
+          done
           west build -p always -b blackpill_f411ce
 
       - name: Upload firmware artifacts
