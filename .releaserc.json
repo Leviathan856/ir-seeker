@@ -51,7 +51,7 @@
     [
       "@semantic-release/exec",
       {
-        "prepareCmd": "bash -c 'ver=\"${nextRelease.version}\"; ver=\"${ver#v}\"; IFS=\".-\" read -r maj min pat extra <<< \"$ver\"; printf \"VERSION_MAJOR = %s\\nVERSION_MINOR = %s\\nPATCHLEVEL = %s\\nVERSION_TWEAK = 0\\nEXTRAVERSION = %s\\n\" \"${maj:-0}\" \"${min:-0}\" \"${pat:-0}\" \"${extra}\" > VERSION'"
+        "prepareCmd": "bash -c 'ver=$(echo \"$1\" | sed \"s/^v//\"); IFS=\".-\" read -r M m p x <<< \"$ver\"; printf \"VERSION_MAJOR = %s\\nVERSION_MINOR = %s\\nPATCHLEVEL = %s\\nVERSION_TWEAK = 0\\nEXTRAVERSION = %s\\n\" \"$M\" \"$m\" \"$p\" \"$x\" > VERSION' -- ${nextRelease.version}"
       }
     ],
     [
